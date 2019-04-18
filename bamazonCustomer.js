@@ -1,5 +1,7 @@
 const mysql = require("mysql");
 const inquirer = require("inquirer");
+let Table = require("cli-table");
+let chalk = require("chalk");
 const connection = mysql.createConnection({
   host: "localhost",
   port: 3306,
@@ -10,14 +12,47 @@ const connection = mysql.createConnection({
 
 connection.connect(function(err) {
   if (err) throw err;
-  console.log("Connected!");
+  console.log(
+    chalk.blue(
+      "***************************************************************"
+    )
+  );
+  console.log(
+    chalk.green(
+      "******************Welcome to the Bamazone**********************"
+    )
+  );
+  console.log(
+    chalk.green(
+      "******************Cool Place to buy stuffs*********************"
+    )
+  );
+  console.log(
+    chalk.blue(
+      "***************************************************************"
+    )
+  );
+
   displayItems();
 });
 
 function displayItems() {
+  let tableDisplay = new Table({
+    head: ["Item ID", "Product Name", "Department", "Price", "Qty Available"]
+  });
   connection.query("SELECT * FROM products", function(err, res) {
     if (err) throw err;
-    console.table(res);
+    res.map(function(row) {
+      let productRow = [
+        row.item_id,
+        row.product_name,
+        row.department_name,
+        "$" + row.price,
+        row.stock_available
+      ];
+      tableDisplay.push(productRow);
+    });
+    console.log(tableDisplay.toString());
     askCustomer();
   });
 }
@@ -28,20 +63,32 @@ function askCustomer() {
       {
         type: "input",
         message: "Please input the item id you want to buy",
-        name: "id"
+        name: "id",
+        validate: function(value) {
+          if (isNaN(value) === false) {
+            return true;
+          }
+          return false;
+        }
       },
       {
         type: "input",
         message: "Please input the quantity you want to buy",
-        name: "quantity"
+        name: "quantity",
+        validate: function(value) {
+          if (isNaN(value) === false) {
+            return true;
+          }
+          return false;
+        }
       }
     ])
     .then(function(response) {
-      console.log(response);
+      // console.log(response);
       var id = response.id;
       var orderQty = parseInt(response.quantity);
-      console.log(orderQty);
-      console.log(id);
+      // console.log(orderQty);
+      // console.log(id);
       displayStock(id, orderQty);
     });
 }
@@ -51,23 +98,52 @@ function displayStock(id, orderQty) {
 
   connection.query(query, [id], function(err, res) {
     if (err) throw err;
-    console.table(JSON.parse(JSON.stringify(res)));
+    // console.log(JSON.parse(JSON.stringify(res)));
     let availabeStock = parseInt(res[0].stock_available);
     let unitPrice = parseFloat(res[0].price);
-    if (availabeStock <= orderQty) {
+    if (availabeStock < orderQty) {
       console.log(
-        "****************Insufficinet quantity to meet the order***************"
+        chalk.yellow(
+          "****************Insufficinet quantity to meet the order***************"
+        )
       );
       console.log(
-        "***************Please select other items to buy*************"
+        chalk.yellow(
+          "*****************Please select other items to buy*************"
+        )
       );
       askCustomer();
     } else {
       let totalPrice = orderQty * unitPrice;
       availabeStock = availabeStock - orderQty;
-      console.log("Total price: " + totalPrice);
-      console.log(availabeStock);
+      console.log(
+        chalk.yellow(
+          "**************Congratulation Your Order has been placed***************"
+        )
+      );
+      console.log(chalk.red("Your Total price: " + totalPrice.toFixed(2)));
       updateProduct(id, availabeStock);
+      inquirer
+        .prompt({
+          name: "action",
+          type: "list",
+          message: "Do You want to buy again?",
+          choices: ["Sure", "Exist"]
+        })
+        .then(function(res) {
+          var response = res.action;
+          console.log(response);
+
+          switch (response) {
+            case "Sure":
+              displayItems();
+              break;
+            case "Exist":
+              console.log(chalk.blue("Thank you for shopping"));
+              connection.end();
+              break;
+          }
+        });
     }
   });
 }
