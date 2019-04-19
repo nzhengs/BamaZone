@@ -15,11 +15,6 @@ connection.connect(function(err) {
   if (err) throw err;
   console.log("Connected!");
   askManager();
-  connection.query("SELECT * FROM products"),
-    function(err, results) {
-      if (err) throw err;
-      console.table(results);
-    };
 });
 
 function askManager() {
@@ -65,21 +60,22 @@ function askManager() {
 }
 
 function viewProduct() {
-  connection.query(
-    "SELECT item_id, product_name,price,stock_available FROM products where stock_available>0",
-    function(err, res) {
-      if (err) throw err;
-      console.table(res);
-    }
+  console.log(
+    chalk.yellow(
+      "**************Below is the list of available stocks*******************"
+    )
   );
+  displayStock(askManager);
 }
 
 function lowInventory() {
   connection.query(
-    "SELECT item_id, product_name,price,stock_available FROM products where stock_available<=5",
+    "SELECT item_id, product_name,department_name,price,stock_available FROM products where stock_available<=5",
     function(err, res) {
       if (err) throw err;
-      console.table(res);
+      console.log(chalk.red("*****************LOW STOCK PRODUCTS!!!!!!!!!!!***********"))
+      displayProducts(res);
+      askManager();
     }
   );
 }
@@ -151,26 +147,30 @@ function addInventory() {
   });
 }
 function displayStock(callback) {
-  let tableDisplay = new Table({
-    head: ["Item ID", "Product Name", "Department", "Price", "Qty Available"]
-  });
   connection.query("SELECT * FROM products", function(err, res) {
     if (err) throw err;
-    res.map(function(row) {
-      let productRow = [
-        row.item_id,
-        row.product_name,
-        row.department_name,
-        "$" + row.price,
-        row.stock_available
-      ];
-      tableDisplay.push(productRow);
-    });
-    console.log(tableDisplay.toString());
+    displayProducts(res);
     if (callback) {
       callback();
     }
   });
+}
+
+function displayProducts(products) {
+  const tableDisplay = new Table({
+    head: ["Item ID", "Product Name", "Department", "Price", "Qty Available"]
+  });
+  products.map(function(row) {
+    let productRow = [
+      row.item_id,
+      row.product_name,
+      row.department_name,
+      "$" + row.price,
+      row.stock_available
+    ];
+    tableDisplay.push(productRow);
+  });
+  console.log(tableDisplay.toString());
 }
 
 function askStock() {

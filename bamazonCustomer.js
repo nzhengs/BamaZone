@@ -33,7 +33,27 @@ connection.connect(function(err) {
     )
   );
 
-  displayItems();
+  inquirer
+    .prompt({
+      name: "action",
+      type: "list",
+      message: "Do You want place order?",
+      choices: ["Sure", "Exit"]
+    })
+    .then(function(res) {
+      var response = res.action;
+      console.log(response);
+
+      switch (response) {
+        case "Sure":
+          displayItems();
+          break;
+        case "Exit":
+          console.log(chalk.blue("Thank you for shopping"));
+          connection.end();
+          break;
+      }
+    });
 });
 
 function displayItems() {
@@ -109,7 +129,7 @@ function displayStock(id, orderQty) {
       );
       console.log(
         chalk.yellow(
-          "*****************Please select other items to buy*************"
+          "*****************Please select other items to buy or decrease the quantity of order*************"
         )
       );
       askCustomer();
@@ -121,14 +141,14 @@ function displayStock(id, orderQty) {
           "**************Congratulation Your Order has been placed***************"
         )
       );
-      console.log(chalk.red("Your Total price: " + totalPrice.toFixed(2)));
+      console.log(chalk.red("Your Total price: $" + totalPrice.toFixed(2)));
       updateProduct(id, availabeStock);
       inquirer
         .prompt({
           name: "action",
           type: "list",
           message: "Do You want to buy again?",
-          choices: ["Sure", "Exist"]
+          choices: ["Sure", "Exit"]
         })
         .then(function(res) {
           var response = res.action;
@@ -138,8 +158,12 @@ function displayStock(id, orderQty) {
             case "Sure":
               displayItems();
               break;
-            case "Exist":
-              console.log(chalk.blue("Thank you for shopping"));
+            case "Exit":
+              console.log(
+                chalk.blue(
+                  "################Thank you for shopping#################"
+                )
+              );
               connection.end();
               break;
           }
